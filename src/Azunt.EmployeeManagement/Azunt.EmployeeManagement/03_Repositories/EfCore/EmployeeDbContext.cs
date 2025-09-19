@@ -3,35 +3,41 @@
 namespace Azunt.EmployeeManagement
 {
     /// <summary>
-    /// EmployeeApp에서 사용하는 데이터베이스 컨텍스트 클래스입니다.
-    /// Entity Framework Core와 데이터베이스 간의 브리지 역할을 합니다.
+    /// EmployeeApp에서 사용하는 EF Core DbContext.
+    /// 애그리게이트 루트(Employee 등)에 대한 매핑과 공통 규칙을 구성합니다.
     /// </summary>
     public class EmployeeDbContext : DbContext
     {
         /// <summary>
-        /// DbContextOptions을 인자로 받는 생성자입니다.
-        /// 주로 Program.cs 또는 Startup.cs에서 서비스로 등록할 때 사용됩니다.
+        /// DbContextOptions를 받는 기본 생성자.
+        /// 주로 Program.cs/Startup.cs 등록에서 사용합니다.
         /// </summary>
         public EmployeeDbContext(DbContextOptions<EmployeeDbContext> options)
             : base(options)
         {
+            // 기본 조회는 변경 추적 없이 수행 (쓰기 시나리오에서는 AsTracking() 사용)
             ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
         }
 
         /// <summary>
-        /// 데이터베이스 모델을 설정하는 메서드입니다.
+        /// Employees 테이블에 매핑되는 엔터티 집합.
+        /// </summary>
+        public DbSet<Employee> Employees { get; set; } = null!;
+
+        /// <summary>
+        /// 모델 구성: 컬럼 타입/기본값 등 스키마 규칙 정의.
         /// </summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Employees 테이블의 CreatedAt 열은 기본값으로 현재 날짜/시간을 사용합니다.
-            modelBuilder.Entity<Employee>()
-                .Property(m => m.CreatedAt)
-                .HasDefaultValueSql("GetDate()");
-        }
+            base.OnModelCreating(modelBuilder);
 
-        /// <summary>
-        /// EmployeeApp 관련 테이블을 정의합니다.
-        /// </summary>
-        public DbSet<Employee> Employees { get; set; } = null!;
+            modelBuilder.Entity<Employee>(entity =>
+            {
+                // CreatedAt: 테이블 스키마와 일치 (datetimeoffset + SYSDATETIMEOFFSET())
+                entity.Property(e => e.CreatedAt)
+                      .HasColumnType("datetimeoffset")
+                      .HasDefaultValueSql("SYSDATETIMEOFFSET()");
+            });
+        }
     }
 }
