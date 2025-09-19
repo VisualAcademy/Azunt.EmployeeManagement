@@ -69,19 +69,37 @@ namespace Azunt.Web
 
 
 
-            #region Employees 테이블 초기화/보강 및 시드
+            #region Employees 테이블 초기화/보강 및 시드 (DbInitItem 클래스 없이)
             try
             {
-                // EmployeesTableBuilder.Run(IServiceProvider services, bool forMaster, bool enableSeeding)
-                EmployeesTableBuilder.Run(app.Services, forMaster: true, enableSeeding: true);   // Master DB
+                var cfg = app.Services.GetRequiredService<IConfiguration>();
+                var employeesSection = cfg.GetSection("Database:Initializers")
+                                          .GetChildren()
+                                          .FirstOrDefault(x =>
+                                              string.Equals(x["Name"], "Employees", StringComparison.OrdinalIgnoreCase));
 
-                Console.WriteLine("Employees table initialization completed.");
+                if (employeesSection != null)
+                {
+                    bool forMaster = bool.TryParse(employeesSection["ForMaster"], out var fm) ? fm : false;
+                    bool enableSeeding = bool.TryParse(employeesSection["EnableSeeding"], out var es) ? es : false; // 기본값 false
+
+                    EmployeesTableBuilder.Run(app.Services, forMaster: forMaster, enableSeeding: enableSeeding);
+
+                    Console.WriteLine(
+                        $"Employees table initialization finished. Target={(forMaster ? "Master" : "Tenants")}, Seed={enableSeeding}"
+                    );
+                }
+                else
+                {
+                    Console.WriteLine("Employees initializer not configured in Database:Initializers. Skipped.");
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Employees table initialization failed: {ex.Message}");
             }
             #endregion
+
 
 
             app.Run();
