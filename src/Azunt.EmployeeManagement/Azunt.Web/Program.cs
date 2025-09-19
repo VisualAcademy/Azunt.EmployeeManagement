@@ -1,3 +1,4 @@
+using Azunt.EmployeeManagement;
 using Azunt.Web.Components;
 using Azunt.Web.Components.Account;
 using Azunt.Web.Data;
@@ -65,6 +66,23 @@ namespace Azunt.Web
 
             // Add additional endpoints required by the Identity /Account Razor components.
             app.MapAdditionalIdentityEndpoints();
+
+
+
+            #region Employees 테이블 초기화/보강 및 시드
+            try
+            {
+                // EmployeesTableBuilder.Run(IServiceProvider services, bool forMaster, bool enableSeeding)
+                EmployeesTableBuilder.Run(app.Services, forMaster: true, enableSeeding: true);   // Master DB
+
+                Console.WriteLine("Employees table initialization completed.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Employees table initialization failed: {ex.Message}");
+            }
+            #endregion
+
 
             app.Run();
         }

@@ -14,4 +14,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.20" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Azunt.EmployeeManagement\Azunt.EmployeeManagement.csproj" />
+  </ItemGroup>
+
 </Project>
