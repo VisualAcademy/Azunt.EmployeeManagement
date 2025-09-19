@@ -53,7 +53,7 @@ public class EmployeeRepository : IEmployeeRepository
     }
 
     /// <summary>
-    /// Id로 단건 조회 (없으면 빈 객체 반환)
+    /// Id로 단건 조회 (없으면 빈 개체 반환)
     /// </summary>
     public async Task<Employee> GetByIdAsync(long id, string? connectionString = null)
     {
