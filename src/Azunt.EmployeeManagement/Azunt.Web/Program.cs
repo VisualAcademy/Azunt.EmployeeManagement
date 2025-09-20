@@ -42,6 +42,12 @@ namespace Azunt.Web
 
             builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
+            // 직원 관리 모듈 등록: 기본 CRUD 코드
+            builder.Services.AddDependencyInjectionContainerForEmployeeApp(connectionString);
+
+            // DbContextFactory는 리포지토리 내부에서 DbContext 생성을 위해 사용됨
+            builder.Services.AddTransient<EmployeeDbContextFactory>();
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
