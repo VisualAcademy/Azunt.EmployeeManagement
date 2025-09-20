@@ -14,6 +14,8 @@ namespace Azunt.Web
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Services.AddControllers();
+
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
@@ -106,7 +108,7 @@ namespace Azunt.Web
             }
             #endregion
 
-
+            app.MapDefaultControllerRoute();
 
             app.Run();
         }
