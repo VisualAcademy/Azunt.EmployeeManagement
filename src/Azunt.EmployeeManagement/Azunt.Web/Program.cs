@@ -77,7 +77,7 @@ namespace Azunt.Web
 
 
 
-            #region Employees 테이블 초기화/보강 및 시드 (DbInitItem 클래스 없이)
+            #region Employees 테이블 초기화/보강 및 시드
             try
             {
                 var cfg = app.Services.GetRequiredService<IConfiguration>();
@@ -107,6 +107,8 @@ namespace Azunt.Web
                 Console.WriteLine($"Employees table initialization failed: {ex.Message}");
             }
             #endregion
+
+
 
             app.MapDefaultControllerRoute();
 
