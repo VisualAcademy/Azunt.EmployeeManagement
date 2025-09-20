@@ -21,7 +21,7 @@ public class EmployeeRepository : IEmployeeRepository
         _logger = loggerFactory.CreateLogger<EmployeeRepository>();
     }
 
-    private EmployeeDbContext CreateContext(string? connectionString) =>
+    protected virtual EmployeeDbContext CreateContext(string? connectionString) =>
         string.IsNullOrEmpty(connectionString)
             ? _factory.CreateDbContext()
             : _factory.CreateDbContext(connectionString);
@@ -69,7 +69,11 @@ public class EmployeeRepository : IEmployeeRepository
     {
         await using var context = CreateContext(connectionString);
 
-        var entity = await context.Employees.FirstOrDefaultAsync(e => e.Id == model.Id);
+        // 전역 NoTracking이어도 이 쿼리는 트래킹 모드로 강제
+        var entity = await context.Employees
+            .AsTracking()
+            .FirstOrDefaultAsync(e => e.Id == model.Id);
+
         if (entity is null) return false;
 
         entity.Active = model.Active;
