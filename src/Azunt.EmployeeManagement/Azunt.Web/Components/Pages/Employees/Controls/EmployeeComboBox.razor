@@ -1,0 +1,58 @@
+﻿@namespace Azunt.Web.Components.Pages.Employees.Controls
+@using Azunt.EmployeeManagement
+@inject IEmployeeRepository EmployeeRepository
+
+<div class="d-flex align-items-center">
+    <select class="form-control" style="width: 250px;" @onchange="OnSelectChanged">
+        <option value="">-- Select an Employee --</option>
+        @foreach (var name in EmployeeNames)
+        {
+            <option value="@name" selected="@(name == SelectedEmployee)">
+                @name
+            </option>
+        }
+    </select>
+
+    <span class="mx-2 text-muted">or</span>
+
+    <input class="form-control"
+           type="text"
+           placeholder="Or type a new employee name..."
+           style="width: 250px;"
+           @bind="SelectedEmployee"
+           @oninput="OnInputChanged" />
+</div>
+
+@code {
+    [Parameter] public string SelectedEmployee { get; set; } = "";
+    [Parameter] public EventCallback<string> SelectedEmployeeChanged { get; set; }
+
+    private List<string> EmployeeNames { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var employees = await EmployeeRepository.GetAllAsync();
+        EmployeeNames = employees
+            .Select(e => e.Name ?? "")
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList();
+    }
+
+    private async Task OnSelectChanged(ChangeEventArgs e)
+    {
+        var selected = e.Value?.ToString();
+        if (!string.IsNullOrWhiteSpace(selected))
+        {
+            SelectedEmployee = selected!;
+            await SelectedEmployeeChanged.InvokeAsync(SelectedEmployee);
+        }
+    }
+
+    private async Task OnInputChanged(ChangeEventArgs e)
+    {
+        SelectedEmployee = e.Value?.ToString() ?? "";
+        await SelectedEmployeeChanged.InvokeAsync(SelectedEmployee);
+    }
+}

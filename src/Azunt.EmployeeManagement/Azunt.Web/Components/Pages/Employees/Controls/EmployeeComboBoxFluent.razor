@@ -1,0 +1,62 @@
+﻿@namespace Azunt.Web.Components.Pages.Employees.Controls
+@using Azunt.EmployeeManagement
+@using Microsoft.FluentUI.AspNetCore.Components
+@inject IEmployeeRepository EmployeeRepository
+
+<FluentCombobox TItem="Option<string>"
+                Label="Employee"
+                Items="EmployeeOptions"
+                OptionText="@(o => o.Text)"
+                OptionValue="@(o => o.Value)"
+                OptionSelected="@(o => o.Value == SelectedEmployee)"
+                Value="SelectedEmployee"
+                ValueChanged="OnEmployeeChanged"
+                ValueExpression="() => SelectedEmployee"
+                AllowFreeform="true"
+                Autocomplete="ComboboxAutocomplete.List"
+                Style="width: 250px;" />
+
+@code {
+    [Parameter] public string SelectedEmployee { get; set; } = "";
+    [Parameter] public EventCallback<string> SelectedEmployeeChanged { get; set; }
+
+    private List<Option<string>> EmployeeOptions { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var employees = await EmployeeRepository.GetAllAsync();
+        var names = employees
+            .Select(e => e.Name ?? "")
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList();
+
+        EmployeeOptions = names
+            .Select(n => new Option<string>
+            {
+                Value = n,
+                Text = n,
+                Selected = n == SelectedEmployee
+            })
+            .ToList();
+
+        // 넘어온 선택 값이 리스트에 없을 경우 수동 삽입
+        if (!string.IsNullOrWhiteSpace(SelectedEmployee) &&
+            !EmployeeOptions.Any(o => o.Value == SelectedEmployee))
+        {
+            EmployeeOptions.Insert(0, new Option<string>
+            {
+                Value = SelectedEmployee,
+                Text = SelectedEmployee,
+                Selected = true
+            });
+        }
+    }
+
+    private async Task OnEmployeeChanged(string? newValue)
+    {
+        SelectedEmployee = newValue ?? "";
+        await SelectedEmployeeChanged.InvokeAsync(SelectedEmployee);
+    }
+}
