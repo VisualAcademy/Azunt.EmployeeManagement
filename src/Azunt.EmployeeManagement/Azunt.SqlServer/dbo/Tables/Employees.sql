@@ -8,5 +8,9 @@ CREATE TABLE [dbo].[Employees]
     [Name]      NVARCHAR (MAX)     NULL,                                    -- 이름
     ---
     [FirstName] NVARCHAR (255)     NULL,                                    -- 이름 (First Name)  
-    [LastName]  NVARCHAR (255)     NULL,                                    -- 성 (Last Name
+    [LastName]  NVARCHAR (255)     NULL,                                    -- 성 (Last Name)
+
+    -- 추가된 컬럼
+    [Created]   DATETIMEOFFSET     NULL DEFAULT (GETDATE()),                -- [생성일](PostDate), DatePublished, CreatedAt
+    [Email]     NVARCHAR(254)      NULL                                     -- 이메일 주소
 );

@@ -46,5 +46,17 @@ namespace Azunt.EmployeeManagement
         /// Employee's last name.
         /// </summary>
         public string? LastName { get; set; }
+
+        /// <summary>
+        /// Created date (PostDate / DatePublished).
+        /// Maps to [Created] column.
+        /// </summary>
+        public DateTimeOffset? Created { get; set; }
+
+        /// <summary>
+        /// Employee's email address.
+        /// </summary>
+        [MaxLength(254)]
+        public string? Email { get; set; }
     }
 }

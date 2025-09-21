@@ -87,7 +87,7 @@ public class EmployeesTableBuilder
 
             if (tableCount == 0)
             {
-                // 2) 신규 생성
+                // 2) 신규 생성 (Created, Email 포함)
                 using var cmdCreate = new SqlCommand(@"
                     CREATE TABLE [dbo].[Employees] (
                         [Id]         BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
@@ -96,7 +96,9 @@ public class EmployeesTableBuilder
                         [CreatedBy]  NVARCHAR(255) NULL,
                         [Name]       NVARCHAR(MAX) NULL,
                         [FirstName]  NVARCHAR(255) NULL,
-                        [LastName]   NVARCHAR(255) NULL
+                        [LastName]   NVARCHAR(255) NULL,
+                        [Created]    DATETIMEOFFSET NULL CONSTRAINT DF_Employees_Created DEFAULT (GETDATE()),
+                        [Email]      NVARCHAR(254) NULL
                     );", connection);
 
                 cmdCreate.ExecuteNonQuery();
@@ -104,7 +106,7 @@ public class EmployeesTableBuilder
             }
             else
             {
-                // 3) 누락된 컬럼만 추가
+                // 3) 누락된 컬럼만 추가 (Created, Email 포함)
                 var expectedColumns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
                     ["Active"] = "BIT NULL CONSTRAINT DF_Employees_Active DEFAULT ((1))",
@@ -112,7 +114,9 @@ public class EmployeesTableBuilder
                     ["CreatedBy"] = "NVARCHAR(255) NULL",
                     ["Name"] = "NVARCHAR(MAX) NULL",
                     ["FirstName"] = "NVARCHAR(255) NULL",
-                    ["LastName"] = "NVARCHAR(255) NULL"
+                    ["LastName"] = "NVARCHAR(255) NULL",
+                    ["Created"] = "DATETIMEOFFSET NULL CONSTRAINT DF_Employees_Created DEFAULT (GETDATE())",
+                    ["Email"] = "NVARCHAR(254) NULL"
                 };
 
                 foreach (var (columnName, typeClause) in expectedColumns)
@@ -128,7 +132,7 @@ public class EmployeesTableBuilder
             }
         }
 
-        // 4) 초기 데이터 삽입 (토글 켜져 있을 때만)
+        // 4) 초기 데이터 삽입 (토글 켜져 있을 때만) - Created, Email 포함
         if (_enableSeeding)
         {
             using var cmdCountRows = new SqlCommand("SELECT COUNT(*) FROM [dbo].[Employees];", connection);
@@ -137,10 +141,10 @@ public class EmployeesTableBuilder
             if (rowCount == 0)
             {
                 using var cmdInsertDefaults = new SqlCommand(@"
-                    INSERT INTO [dbo].[Employees] (Active, CreatedAt, CreatedBy, Name, FirstName, LastName)
+                    INSERT INTO [dbo].[Employees] (Active, CreatedAt, CreatedBy, Name, FirstName, LastName, Created, Email)
                     VALUES
-                        (1, SYSDATETIMEOFFSET(), N'System', N'Initial Employee 1', N'Initial', N'Employee1'),
-                        (1, SYSDATETIMEOFFSET(), N'System', N'Initial Employee 2', N'Initial', N'Employee2');", connection);
+                        (1, SYSDATETIMEOFFSET(), N'System', N'Initial Employee 1', N'Initial', N'Employee1', GETDATE(), N'initial1@example.com'),
+                        (1, SYSDATETIMEOFFSET(), N'System', N'Initial Employee 2', N'Initial', N'Employee2', GETDATE(), N'initial2@example.com');", connection);
 
                 int inserted = cmdInsertDefaults.ExecuteNonQuery();
                 _logger.LogInformation("Employees seed inserted: {Count}", inserted);
