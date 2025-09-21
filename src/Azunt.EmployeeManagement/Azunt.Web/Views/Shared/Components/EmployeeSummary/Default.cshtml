@@ -28,12 +28,8 @@
                                 <div class="d-flex justify-content-between">
                                     <span class="fw-semibold">@item.FullName</span>
                                     <small class="text-muted">
-                                        @(
-                                            item.CreatedAt == DateTimeOffset.MinValue
-                                            ? ""
-                                            : item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")
-                                         )
-                                    </small>
+                                        @(!item.CreatedAt.HasValue ? "" : item.CreatedAt.Value.ToLocalTime().ToString("yyyy-MM-dd"))
+                                </small>
                                 </div>
                                 <small class="text-muted">
                                     @(item.Active.HasValue ? (item.Active.Value ? "Active" : "Inactive") : "Unknown")

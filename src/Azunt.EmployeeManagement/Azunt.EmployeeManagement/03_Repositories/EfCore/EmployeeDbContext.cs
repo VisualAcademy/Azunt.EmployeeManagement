@@ -36,7 +36,8 @@ namespace Azunt.EmployeeManagement
                 // CreatedAt: 테이블 스키마와 일치 (datetimeoffset + SYSDATETIMEOFFSET())
                 entity.Property(e => e.CreatedAt)
                       .HasColumnType("datetimeoffset")
-                      .HasDefaultValueSql("SYSDATETIMEOFFSET()");
+                      .HasDefaultValueSql("SYSDATETIMEOFFSET()")
+                      .IsRequired(false);
             });
         }
     }

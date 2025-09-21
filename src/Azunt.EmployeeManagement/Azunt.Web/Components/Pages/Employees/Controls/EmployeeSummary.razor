@@ -151,9 +151,10 @@
         return (c1.ToString() + (c2 == ' ' ? "" : c2.ToString()));
     }
 
-    private static string Humanize(DateTimeOffset utc)
+    private static string Humanize(DateTimeOffset? utc)
     {
-        var dt = utc.ToLocalTime().DateTime;
+        if (!utc.HasValue) return "";
+        var dt = utc.Value.ToLocalTime().DateTime;
         var diff = DateTime.Now - dt;
         if (diff.TotalSeconds < 60) return "just now";
         if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} min ago";
@@ -175,7 +176,7 @@
         public long Id { get; set; }
         public string FirstName { get; set; } = "";
         public string LastName { get; set; } = "";
-        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset? CreatedAt { get; set; }
         public bool Active { get; set; }
     }
 }

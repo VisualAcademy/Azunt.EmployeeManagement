@@ -91,9 +91,19 @@ namespace Azunt.Apis.Employees
                     // C: Name (문자)
                     row.Append(CreateTextCell(ToRef(startCol + 1, currentRow), m.Name ?? string.Empty));
 
-                    // D: CreatedAt (날짜/시간)
-                    var local = m.CreatedAt.ToLocalTime();
-                    row.Append(CreateDateTimeCell(ToRef(startCol + 2, currentRow), local));
+                    // D: CreatedAt (nullable 안전 처리: Created 우선, 없으면 CreatedAt, 둘 다 없으면 빈 셀)
+                    DateTimeOffset? createdAny = m.Created ?? m.CreatedAt;
+                    if (createdAny.HasValue)
+                    {
+                        row.Append(CreateDateTimeCell(
+                            ToRef(startCol + 2, currentRow),
+                            createdAny.Value.ToLocalTime()));
+                    }
+                    else
+                    {
+                        // 빈 셀로 대체
+                        row.Append(CreateTextCell(ToRef(startCol + 2, currentRow), string.Empty));
+                    }
 
                     // E: Active (FALSE 시 강조 스타일 적용)
                     var isActive = m.Active ?? false;

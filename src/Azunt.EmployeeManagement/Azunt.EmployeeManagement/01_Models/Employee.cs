@@ -25,7 +25,7 @@ namespace Azunt.EmployeeManagement
         /// <summary>
         /// Record creation timestamp.
         /// </summary>
-        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset? CreatedAt { get; set; }
 
         /// <summary>
         /// Name of the record creator.

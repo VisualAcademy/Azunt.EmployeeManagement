@@ -27,7 +27,7 @@ namespace Azunt.Web.Components
             public string FirstName { get; set; } = "";
             public string LastName { get; set; } = "";
             public string FullName => BuildFullName(FirstName, LastName);
-            public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.MinValue;
+            public DateTimeOffset? CreatedAt { get; set; } = DateTimeOffset.MinValue;
             public bool? Active { get; set; } = true;
         }
 
