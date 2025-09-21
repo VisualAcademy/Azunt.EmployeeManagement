@@ -1,0 +1,181 @@
+﻿@namespace Azunt.Web.Components.Pages.Employees.Controls
+@using Azunt.EmployeeManagement
+@inject IEmployeeRepository EmployeeRepository
+@inject NavigationManager Nav
+
+<div class="card shadow-sm h-100">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">@Title</h6>
+        @if (ShowViewAllLink)
+        {
+            <a href="javascript:void(0);" class="small text-decoration-none" @onclick="GoEmployees">
+                View all
+            </a>
+        }
+    </div>
+
+    <div class="card-body p-0">
+        @if (isLoading)
+        {
+            <ul class="list-group list-group-flush">
+                @for (int i = 0; i < 5; i++)
+                {
+                    <li class="list-group-item">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle placeholder-glow me-3" style="width:36px;height:36px;background-color:#e9ecef;"></div>
+                            <div class="flex-fill">
+                                <div class="placeholder-glow">
+                                    <span class="placeholder col-6"></span>
+                                </div>
+                                <div class="placeholder-glow">
+                                    <span class="placeholder col-4"></span>
+                                </div>
+                            </div>
+                            <span class="badge bg-light text-secondary ms-2">&nbsp;</span>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+        else if (items.Count == 0)
+        {
+            <div class="p-3 text-center text-muted">No recent employees.</div>
+        }
+        else
+        {
+            <ul class="list-group list-group-flush">
+                @foreach (var e in items)
+                {
+                    <li class="list-group-item">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                                 style="width:36px;height:36px;background-color:#f1f3f5;font-weight:600;">
+                                @Initials(e.FirstName, e.LastName)
+                            </div>
+
+                            <div class="flex-fill">
+                                <div class="fw-semibold">@FullNameText(e.FirstName, e.LastName)</div>
+                                <div class="text-muted small">
+                                    Created @Humanize(e.CreatedAt)
+                                </div>
+                            </div>
+
+                            @if (e.Active)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle ms-2">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle ms-2">Inactive</span>
+                            }
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+<style>
+    /* 부트스트랩 4 호환용 배지 색(있으면 사용, 없으면 fallback) */
+    .bg-success-subtle {
+        background-color: #e6f4ea !important;
+    }
+
+    .bg-secondary-subtle {
+        background-color: #f0f1f2 !important;
+    }
+
+    .border-success-subtle {
+        border-color: #cfe9d7 !important;
+    }
+
+    .border-secondary-subtle {
+        border-color: #e2e3e5 !important;
+    }
+</style>
+
+@code {
+    // --- Parameters ---
+    /// <summary>표제(카드 제목)</summary>
+    [Parameter] public string Title { get; set; } = "Recent Employees";
+    /// <summary>가져올 항목 수</summary>
+    [Parameter] public int Count { get; set; } = 5;
+    /// <summary>우측 상단 'View all' 링크 표시 여부</summary>
+    [Parameter] public bool ShowViewAllLink { get; set; } = true;
+
+    private List<EmployeeItem> items = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var all = await EmployeeRepository.GetAllAsync();
+        // CreatedAt 내림차순 Top N
+        items = all
+            .Select(e => new EmployeeItem
+            {
+                Id = e.Id,                                      // long → long
+                FirstName = e.FirstName ?? SplitFirst(e.Name),
+                LastName = e.LastName ?? SplitLast(e.Name),
+                CreatedAt = e.CreatedAt,
+                Active = e.Active ?? false
+            })
+            .OrderByDescending(e => e.CreatedAt)
+            .Take(Math.Max(1, Count))
+            .ToList();
+
+        isLoading = false;
+    }
+
+    private void GoEmployees() => Nav.NavigateTo("/Employees");
+
+    // --- Helpers ---
+    private static string SplitFirst(string? fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName)) return "";
+        var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length > 0 ? parts[0] : fullName.Trim();
+    }
+
+    private static string SplitLast(string? fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName)) return "";
+        var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length > 1 ? string.Join(" ", parts.Skip(1)) : "";
+    }
+
+    private static string Initials(string first, string last)
+    {
+        char c1 = string.IsNullOrWhiteSpace(first) ? '?' : char.ToUpperInvariant(first[0]);
+        char c2 = string.IsNullOrWhiteSpace(last) ? ' ' : char.ToUpperInvariant(last[0]);
+        return (c1.ToString() + (c2 == ' ' ? "" : c2.ToString()));
+    }
+
+    private static string Humanize(DateTimeOffset utc)
+    {
+        var dt = utc.ToLocalTime().DateTime;
+        var diff = DateTime.Now - dt;
+        if (diff.TotalSeconds < 60) return "just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} min ago";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} hr ago";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} day(s) ago";
+        return dt.ToString("yyyy-MM-dd HH:mm");
+    }
+
+    private static string FullNameText(string first, string last)
+    {
+        if (string.IsNullOrWhiteSpace(first) && string.IsNullOrWhiteSpace(last))
+            return "(No name)";
+        var full = $"{first} {last}".Trim();
+        return string.IsNullOrWhiteSpace(full) ? "(No name)" : full;
+    }
+
+    private class EmployeeItem
+    {
+        public long Id { get; set; }                  // ★ long으로 변경
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public DateTimeOffset CreatedAt { get; set; }
+        public bool Active { get; set; }
+    }
+}
