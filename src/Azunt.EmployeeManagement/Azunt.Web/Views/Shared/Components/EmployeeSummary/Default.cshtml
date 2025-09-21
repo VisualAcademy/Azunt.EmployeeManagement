@@ -1,0 +1,48 @@
+@model Azunt.Web.Components.EmployeeSummaryViewComponent.EmployeeSummaryViewModel
+
+<div class="card shadow-sm h-100 my-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">@Model.Title</h6>
+        @if (Model.ShowViewAllLink && !string.IsNullOrWhiteSpace(Model.ViewAllUrl))
+        {
+            <a href="@Model.ViewAllUrl" class="small text-decoration-none">View all</a>
+        }
+    </div>
+
+    <div class="card-body p-0">
+        @if (Model.Items is null || !Model.Items.Any())
+        {
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item text-muted">No employees found.</li>
+            </ul>
+        }
+        else
+        {
+            <ul class="list-group list-group-flush">
+                @foreach (var item in Model.Items)
+                {
+                    <li class="list-group-item">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle me-3" style="width:36px;height:36px;background-color:#e9ecef;"></div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between">
+                                    <span class="fw-semibold">@item.FullName</span>
+                                    <small class="text-muted">
+                                        @(
+                                            item.CreatedAt == DateTimeOffset.MinValue
+                                            ? ""
+                                            : item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")
+                                         )
+                                    </small>
+                                </div>
+                                <small class="text-muted">
+                                    @(item.Active.HasValue ? (item.Active.Value ? "Active" : "Inactive") : "Unknown")
+                                </small>
+                            </div>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</div>

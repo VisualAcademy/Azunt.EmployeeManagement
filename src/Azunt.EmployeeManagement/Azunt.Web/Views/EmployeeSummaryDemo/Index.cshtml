@@ -1,0 +1,10 @@
+@{
+    ViewData["Title"] = "Employee Summary Demo";
+}
+
+<h2 class="mb-3">Employee Summary ViewComponent (MVC Demo)</h2>
+
+@await Component.InvokeAsync(
+    "EmployeeSummary",
+    new { title = "Employees", top = 5, activeOnly = true, showViewAllLink = true, viewAllUrl = "/Employees" }
+)
