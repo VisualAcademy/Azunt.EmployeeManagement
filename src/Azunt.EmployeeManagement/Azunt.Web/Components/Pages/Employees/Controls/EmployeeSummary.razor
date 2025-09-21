@@ -114,7 +114,7 @@
         items = all
             .Select(e => new EmployeeItem
             {
-                Id = e.Id,                                      // long → long
+                Id = e.Id,
                 FirstName = e.FirstName ?? SplitFirst(e.Name),
                 LastName = e.LastName ?? SplitLast(e.Name),
                 CreatedAt = e.CreatedAt,
@@ -172,7 +172,7 @@
 
     private class EmployeeItem
     {
-        public long Id { get; set; }                  // ★ long으로 변경
+        public long Id { get; set; }
         public string FirstName { get; set; } = "";
         public string LastName { get; set; } = "";
         public DateTimeOffset CreatedAt { get; set; }
