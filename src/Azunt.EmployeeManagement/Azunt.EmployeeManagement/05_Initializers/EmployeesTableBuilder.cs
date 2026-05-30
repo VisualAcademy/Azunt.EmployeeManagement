@@ -64,7 +64,7 @@ public class EmployeesTableBuilder
         while (reader.Read())
         {
             var connectionString = reader["ConnectionString"]?.ToString();
-            if (!string.IsNullOrEmpty(connectionString))
+            if (!string.IsNullOrWhiteSpace(connectionString))
             {
                 result.Add(connectionString);
             }
@@ -80,25 +80,28 @@ public class EmployeesTableBuilder
 
         // 1) 테이블 존재 여부 확인
         using (var cmdCheck = new SqlCommand(@"
-            SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES 
-            WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'Employees'", connection))
+            SELECT COUNT(*) 
+            FROM INFORMATION_SCHEMA.TABLES 
+            WHERE TABLE_SCHEMA = 'dbo' 
+              AND TABLE_NAME = 'Employees';", connection))
         {
             int tableCount = (int)cmdCheck.ExecuteScalar();
 
             if (tableCount == 0)
             {
-                // 2) 신규 생성 (Created, Email 포함)
+                // 2) 신규 생성
                 using var cmdCreate = new SqlCommand(@"
                     CREATE TABLE [dbo].[Employees] (
-                        [Id]         BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                        [Active]     BIT NULL CONSTRAINT DF_Employees_Active DEFAULT ((1)),
-                        [CreatedAt]  DATETIMEOFFSET NULL CONSTRAINT DF_Employees_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
-                        [CreatedBy]  NVARCHAR(255) NULL,
-                        [Name]       NVARCHAR(MAX) NULL,
-                        [FirstName]  NVARCHAR(255) NULL,
-                        [LastName]   NVARCHAR(255) NULL,
-                        [Created]    DATETIMEOFFSET NULL CONSTRAINT DF_Employees_Created DEFAULT (GETDATE()),
-                        [Email]      NVARCHAR(254) NULL
+                        [Id]                BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                        [Active]            BIT NULL CONSTRAINT DF_Employees_Active DEFAULT ((1)),
+                        [CreatedAt]         DATETIMEOFFSET NULL CONSTRAINT DF_Employees_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+                        [CreatedBy]         NVARCHAR(255) NULL,
+                        [Name]              NVARCHAR(MAX) NULL,
+                        [FirstName]         NVARCHAR(255) NULL,
+                        [LastName]          NVARCHAR(255) NULL,
+                        [Created]           DATETIMEOFFSET NULL CONSTRAINT DF_Employees_Created DEFAULT (GETDATE()),
+                        [Email]             NVARCHAR(254) NULL,
+                        [LicenseNumberSort] BIGINT NULL
                     );", connection);
 
                 cmdCreate.ExecuteNonQuery();
@@ -106,7 +109,7 @@ public class EmployeesTableBuilder
             }
             else
             {
-                // 3) 누락된 컬럼만 추가 (Created, Email 포함)
+                // 3) 누락된 컬럼만 추가
                 var expectedColumns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
                     ["Active"] = "BIT NULL CONSTRAINT DF_Employees_Active DEFAULT ((1))",
@@ -116,7 +119,8 @@ public class EmployeesTableBuilder
                     ["FirstName"] = "NVARCHAR(255) NULL",
                     ["LastName"] = "NVARCHAR(255) NULL",
                     ["Created"] = "DATETIMEOFFSET NULL CONSTRAINT DF_Employees_Created DEFAULT (GETDATE())",
-                    ["Email"] = "NVARCHAR(254) NULL"
+                    ["Email"] = "NVARCHAR(254) NULL",
+                    ["LicenseNumberSort"] = "BIGINT NULL"
                 };
 
                 foreach (var (columnName, typeClause) in expectedColumns)
@@ -125,14 +129,22 @@ public class EmployeesTableBuilder
                     {
                         using var alterCmd = new SqlCommand(
                             $"ALTER TABLE [dbo].[Employees] ADD [{columnName}] {typeClause};", connection);
+
                         alterCmd.ExecuteNonQuery();
-                        _logger.LogInformation("Column added: {Col} ({Type})", columnName, typeClause);
+
+                        _logger.LogInformation(
+                            "Column added: {ColumnName} ({TypeClause})",
+                            columnName,
+                            typeClause);
                     }
                 }
             }
         }
 
-        // 4) 초기 데이터 삽입 (토글 켜져 있을 때만) - Created, Email 포함
+        // 4) LicenseNumberSort 정렬용 인덱스 보장
+        EnsureLicenseNumberSortIndex(connection);
+
+        // 5) 초기 데이터 삽입
         if (_enableSeeding)
         {
             using var cmdCountRows = new SqlCommand("SELECT COUNT(*) FROM [dbo].[Employees];", connection);
@@ -141,14 +153,35 @@ public class EmployeesTableBuilder
             if (rowCount == 0)
             {
                 using var cmdInsertDefaults = new SqlCommand(@"
-                    INSERT INTO [dbo].[Employees] (Active, CreatedAt, CreatedBy, Name, FirstName, LastName, Created, Email)
+                    INSERT INTO [dbo].[Employees] 
+                        (Active, CreatedAt, CreatedBy, Name, FirstName, LastName, Created, Email, LicenseNumberSort)
                     VALUES
-                        (1, SYSDATETIMEOFFSET(), N'System', N'Initial Employee 1', N'Initial', N'Employee1', GETDATE(), N'initial1@example.com'),
-                        (1, SYSDATETIMEOFFSET(), N'System', N'Initial Employee 2', N'Initial', N'Employee2', GETDATE(), N'initial2@example.com');", connection);
+                        (1, SYSDATETIMEOFFSET(), N'System', N'Initial Employee 1', N'Initial', N'Employee1', GETDATE(), N'initial1@example.com', NULL),
+                        (1, SYSDATETIMEOFFSET(), N'System', N'Initial Employee 2', N'Initial', N'Employee2', GETDATE(), N'initial2@example.com', NULL);", connection);
 
                 int inserted = cmdInsertDefaults.ExecuteNonQuery();
                 _logger.LogInformation("Employees seed inserted: {Count}", inserted);
             }
+        }
+    }
+
+    private void EnsureLicenseNumberSortIndex(SqlConnection connection)
+    {
+        if (!ColumnExists(connection, "dbo", "Employees", "LicenseNumberSort"))
+        {
+            _logger.LogWarning("LicenseNumberSort column does not exist. Skipping IX_Employees_LicenseNumberSort creation.");
+            return;
+        }
+
+        if (!IndexExists(connection, "dbo", "Employees", "IX_Employees_LicenseNumberSort"))
+        {
+            using var cmdCreateIndex = new SqlCommand(@"
+                CREATE INDEX [IX_Employees_LicenseNumberSort]
+                ON [dbo].[Employees] ([LicenseNumberSort], [Id]);", connection);
+
+            cmdCreateIndex.ExecuteNonQuery();
+
+            _logger.LogInformation("Index created: IX_Employees_LicenseNumberSort.");
         }
     }
 
@@ -157,11 +190,28 @@ public class EmployeesTableBuilder
         using var cmd = new SqlCommand(@"
             SELECT COUNT(*) 
             FROM INFORMATION_SCHEMA.COLUMNS 
-            WHERE TABLE_SCHEMA = @Schema AND TABLE_NAME = @Table AND COLUMN_NAME = @Column;", connection);
+            WHERE TABLE_SCHEMA = @Schema 
+              AND TABLE_NAME = @Table 
+              AND COLUMN_NAME = @Column;", connection);
 
         cmd.Parameters.AddWithValue("@Schema", schema);
         cmd.Parameters.AddWithValue("@Table", table);
         cmd.Parameters.AddWithValue("@Column", column);
+
+        return (int)cmd.ExecuteScalar() > 0;
+    }
+
+    private static bool IndexExists(SqlConnection connection, string schema, string table, string indexName)
+    {
+        using var cmd = new SqlCommand(@"
+            SELECT COUNT(*)
+            FROM sys.indexes
+            WHERE name = @IndexName
+              AND object_id = OBJECT_ID(QUOTENAME(@Schema) + '.' + QUOTENAME(@Table));", connection);
+
+        cmd.Parameters.AddWithValue("@IndexName", indexName);
+        cmd.Parameters.AddWithValue("@Schema", schema);
+        cmd.Parameters.AddWithValue("@Table", table);
 
         return (int)cmd.ExecuteScalar() > 0;
     }
@@ -174,15 +224,21 @@ public class EmployeesTableBuilder
             var config = services.GetRequiredService<IConfiguration>();
             var masterConnectionString = config.GetConnectionString("DefaultConnection");
 
-            if (string.IsNullOrEmpty(masterConnectionString))
+            if (string.IsNullOrWhiteSpace(masterConnectionString))
+            {
                 throw new InvalidOperationException("DefaultConnection is not configured in appsettings.json.");
+            }
 
             var builder = new EmployeesTableBuilder(masterConnectionString, logger, enableSeeding);
 
             if (forMaster)
+            {
                 builder.BuildMasterDatabase();
+            }
             else
+            {
                 builder.BuildTenantDatabases();
+            }
         }
         catch (Exception ex)
         {
